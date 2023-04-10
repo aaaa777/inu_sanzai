@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python3 /usr/local/bin/main.py
+python3 /usr/local/inu_sanzai/main.py
