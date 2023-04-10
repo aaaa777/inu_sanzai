@@ -25,9 +25,9 @@ re_removes = [
     re.compile('\d+[回|人|年]'),
 ]
 re_replaces = [
-    (re.compile('万'), '0000'),
-    (re.compile('千'), '000'),
-    (re.compile('k'), '000'),
+    (re.compile('万'), '0000+'),
+    (re.compile('千'), '000+'),
+    (re.compile('k'), '000+'),
 ]
 re_role = re.compile('.*?(\d+)')
 re_reply = re.compile('.*?([+|-]\d+)円.+\*\*(\d+)円\*\*', re.DOTALL)
