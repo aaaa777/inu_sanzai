@@ -1,0 +1,12 @@
+[Unit]
+Description=inu sanzai kansi script
+After=network.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/launch.sh
+ExecStop=/bin/kill -WINCH ${MAINPID}
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
