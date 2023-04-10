@@ -4,4 +4,5 @@ chmod +x launch.sh
 
 pip install --no-cache-dir -r requirements.txt
 
-ln -s launch.sh /usr/local/bin/launch.sh
+ln -s $PWD/launch.sh /usr/local/bin/launch.sh
+ln -s $PWD/inu_sanzai.service /etc/systemd/system/inu_sanzai.service
