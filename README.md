@@ -1,4 +1,4 @@
-# inu_sanzai
-
 犬のおこづかい帳
+
+private use
 
