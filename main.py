@@ -126,7 +126,7 @@ async def post_gas(spent_money, total, created_at, comment):
     requests.post("{}?{}".format(os.environ.get('GAS_ENDPOINT'),'action=add'), json=post_data)
 
 async def post_gas_del():
-    requests.post("{}?{}".format(os.environ.get('GAS_ENDPOINT'),'action=del'), json=post_data)
+    requests.get("{}?{}".format(os.environ.get('GAS_ENDPOINT'),'action=del'))
 
 client = discord.Client(intents=intents)
 
@@ -196,6 +196,7 @@ async def on_raw_reaction_add(payload):
         
         await send_reply(-spent, total, inu_role, channel)
         #await msg.clear_reactions()
+        await post_gas_del()
         return
 
     if str(payload.emoji) == "✅":
