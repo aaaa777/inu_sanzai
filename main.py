@@ -1,6 +1,7 @@
 # This example requires the 'message_content' intent.
 
 import discord
+import requests
 import re
 import os
 import datetime
@@ -66,7 +67,7 @@ def parse_message(msg_str, default_date):
         print(f'{today}: {total}')
 
         #details.append(f'{today}: +{total}円')
-        return total
+        return (today, total)
 
 def parse_bot_reply(msg_str):
     re_result = re.match(re_reply, msg_str)
@@ -90,7 +91,7 @@ async def calc_message(msg, inu_role, created_at):
     msg_str = unicodedata.normalize('NFKC', msg.content)
     msg_str = msg_str.translate(kansuzi_table)
 
-    spent_money = parse_message(msg_str, created_at.strftime('%Y/%m/%d'))
+    new_created_at, spent_money = parse_message(msg_str, created_at.strftime('%Y/%m/%d'))
         
     if spent_money <= 0:
         #msg.channel.send("[エラー]記録できませんでした")
@@ -98,6 +99,34 @@ async def calc_message(msg, inu_role, created_at):
     total = int(re_role.match(inu_role.name).group(1))
     total += spent_money
     await send_reply(spent_money, total, inu_role, msg.channel)
+    await post_gas(spent_money, total, new_created_at, msg.content)
+
+async def calc_message_post_gas_only(msg, inu_role, created_at):
+    msg_str = unicodedata.normalize('NFKC', msg.content)
+    msg_str = msg_str.translate(kansuzi_table)
+
+    new_created_at, spent_money = parse_message(msg_str, created_at.strftime('%Y/%m/%d'))
+        
+    if spent_money <= 0:
+        #msg.channel.send("[エラー]記録できませんでした")
+        return
+    total = int(re_role.match(inu_role.name).group(1))
+    total += spent_money
+    print("post gas")
+    await post_gas(spent_money, total, new_created_at, msg.content)
+
+async def post_gas(spent_money, total, created_at, comment):
+    post_data = {
+        "money": spent_money,
+        "date": created_at.isoformat(),
+        "comment": comment,
+        "total": total
+    }
+    print("{}?{}".format(os.environ.get('GAS_ENDPOINT'),'action=add'))
+    requests.post("{}?{}".format(os.environ.get('GAS_ENDPOINT'),'action=add'), json=post_data)
+
+async def post_gas_del():
+    requests.post("{}?{}".format(os.environ.get('GAS_ENDPOINT'),'action=del'), json=post_data)
 
 client = discord.Client(intents=intents)
 
@@ -171,7 +200,7 @@ async def on_raw_reaction_add(payload):
 
     if str(payload.emoji) == "✅":
 
-        await calc_message(msg, inu_role, message.created_at)
+        await calc_message(msg, inu_role, msg.created_at)
         #await msg.clear_reactions()
         return
 
@@ -179,5 +208,8 @@ async def on_raw_reaction_add(payload):
         #await msg.clear_reactions()
         return
 
+    if str(payload.emoji) == "🦷":
+        await calc_message_post_gas_only(msg, inu_role, msg.created_at)
+        return
 
 client.run(TOKEN)
