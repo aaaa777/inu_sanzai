@@ -38,10 +38,10 @@ kansuzi_table = str.maketrans('一二三四五六七八九', '123456789')
 intents = discord.Intents.default()
 intents.message_content = True
 
-def parse_message(msg_str):
+def parse_message(msg_str, default_date):
     for line in msg_str.split("\n"):
         total = 0
-        today = datetime.date.today().strftime('%m/%d')
+        today = default_date
         for word in line.split(" "):
 
             for re_remove in re_removes:
@@ -53,7 +53,7 @@ def parse_message(msg_str):
             match_date = re_date.match(word)
             if match_date:
                 print("date: " + match_date.group())
-                today = match_date.group()
+                today = "{}/{}".format(datetime.datetime.now().year, match_date.group())
                 word = re.sub(re_date, '', word)    
         
             results = re.findall(re_money, word)
@@ -62,7 +62,9 @@ def parse_message(msg_str):
                     print("money: " + result)
                     total += int(re.sub(re_comma, '', result))
 
+        today = datetime.datetime.strptime(today, "%Y/%m/%d")
         print(f'{today}: {total}')
+
         #details.append(f'{today}: +{total}円')
         return total
 
@@ -84,11 +86,11 @@ async def send_reply(spent_money, total, inu_role, channel):
     #await res_msg.add_reaction("❌")
     #await res_msg.add_reaction("🆗")
 
-async def calc_message(msg, inu_role):
+async def calc_message(msg, inu_role, created_at):
     msg_str = unicodedata.normalize('NFKC', msg.content)
     msg_str = msg_str.translate(kansuzi_table)
 
-    spent_money = parse_message(msg_str)
+    spent_money = parse_message(msg_str, created_at.strftime('%Y/%m/%d'))
         
     if spent_money <= 0:
         #msg.channel.send("[エラー]記録できませんでした")
@@ -129,7 +131,7 @@ async def on_message(message):
     
     if message.author.id == INU_ID and message.channel.id == INU_CH_ID:
         print("catch calc")
-        await calc_message(message, inu_role)
+        await calc_message(message, inu_role, message.created_at)
         return
         
 
@@ -169,7 +171,7 @@ async def on_raw_reaction_add(payload):
 
     if str(payload.emoji) == "✅":
 
-        await calc_message(msg, inu_role)
+        await calc_message(msg, inu_role, message.created_at)
         #await msg.clear_reactions()
         return
 
