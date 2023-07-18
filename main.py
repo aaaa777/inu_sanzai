@@ -22,7 +22,7 @@ TOKEN = os.environ.get('TOKEN')
 re_date = re.compile('[0-1]?\d\/[0-3]?\d')
 re_money = re.compile('([1-9][0-9\,]*)')
 re_removes = [
-    re.compile('\d+[回|人|年]'),
+    re.compile('\d+[回|人|年|本|杯|月|日]'),
 ]
 re_replaces = [
     (re.compile('万'), '0000+'),
