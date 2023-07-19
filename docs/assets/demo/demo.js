@@ -13,39 +13,155 @@ demo = {
     });
   },
 
-  initDocChart: function() {
+  initChartsPages: async function() {
+    let dataUrl = "https://script.google.com/macros/s/AKfycbynE670m0-JLDlSs3nO74XLGsTUrqbTec1-jEH-YZiDXk3bG4t3s2d6J1j644_-75f5/exec?action=get";
+
+    let allData = await fetch(dataUrl)
+    .then(response => response.json())
+    .then(data => {
+      console.log(data);
+      return data.content;
+    });
+
+    for (let i = 0; i < 15; i++) {
+      let d = new Date(allData[i][1]);
+      $(`#last-${i}-1`).html(`${d.getMonth() + 1}月${d.getDate()}日`);
+      $(`#last-${i}-0`).html(`${allData[i][0].toLocaleString()} 円`);
+    }
+
+    $("#inu-records").html(allData.length);
+
+    let lastUpdateStrList = ["今日", "昨日", "一昨日", "3日前", "4日前", "5日前", "6日前"];
+    let lastUpdate = new Date(allData[0][1]);
+    console.log(Date.parse(lastUpdate));
+
+    let lastUpdateStr = `${lastUpdate.getMonth() + 1}月${lastUpdate.getDate()}日`;
+    if(lastUpdateStrList.length > (Date.now() - lastUpdate.getTime()) / 86400000) {
+      lastUpdateStr = lastUpdateStrList[Math.floor((Date.now() - lastUpdate.getTime()) / 86400000) - 1];
+    }
+    $(".inu-last-update").html(`&nbsp;最終更新: ${lastUpdateStr}`);
+    
+    // let monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let monthLabels = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
+    let monthIdxList = [
+      (lastUpdate.getMonth() + 1) % 12,
+      (lastUpdate.getMonth() + 2) % 12,
+      (lastUpdate.getMonth() + 3) % 12,
+      (lastUpdate.getMonth() + 4) % 12,
+      (lastUpdate.getMonth() + 5) % 12,
+      (lastUpdate.getMonth() + 6) % 12,
+      (lastUpdate.getMonth() + 7) % 12,
+      (lastUpdate.getMonth() + 8) % 12,
+      (lastUpdate.getMonth() + 9) % 12,
+      (lastUpdate.getMonth() + 10) % 12,
+      (lastUpdate.getMonth() + 11) % 12,
+      (lastUpdate.getMonth()) % 12,
+    ];
+    let milib = (12 - (monthIdxList[0])) % 12;
+    let monthIdxListInv = [
+      milib,
+      (milib + 1) % 12,
+      (milib + 2) % 12,
+      (milib + 3) % 12,
+      (milib + 4) % 12,
+      (milib + 5) % 12,
+      (milib + 6) % 12,
+      (milib + 7) % 12,
+      (milib + 8) % 12,
+      (milib + 9) % 12,
+      (milib + 10) % 12,
+      (milib + 11) % 12,
+    ];
+
+    let spentAll = 0;
+    allData.forEach((row) => {
+      spentAll += row[0];
+    });
+    let spentAllStr = `${spentAll.toLocaleString()} 円`;
+
+    $("#inu-total").html(spentAllStr);
+
+    let monthSpentAll = [];
+    let monthSpentAllTotal = 0;
+    let lastYearMonth;
+    allData.forEach((row) => {
+      console.log(row);
+      if(lastYearMonth != row[1].substring(0, 7)) {
+        monthSpentAll.push(row[0]);
+        lastYearMonth = row[1].substring(0, 7);
+      } else {
+        monthSpentAll[monthSpentAll.length - 1] += row[0];
+      }
+      monthSpentAllTotal += row[0];
+    });
+
+    let monthSpentAllAverage = monthSpentAllTotal / monthSpentAll.length;
+
+    console.log(monthSpentAllAverage);
+    let averageUnderZero = `.<small>${Math.round((monthSpentAllAverage % 1) * 100)}</small>`
+    $("#inu-average").html(`${Math.floor(monthSpentAllAverage).toLocaleString()}${averageUnderZero} 円`);
+    
+
+    let monthSpentLastYear = [0,0,0,0,0,0,0,0,0,0,0,0];
+    let monthSpentLastYearSum = [0,0,0,0,0,0,0,0,0,0,0,0];
+    allData.forEach((row) => {
+      if(lastUpdate.getTime() - new Date(row[1]).getTime() > 365 * 24 * 60 * 60 * 1000) {
+        return;
+      }
+      
+      console.log(new Date(row[1]).getMonth());
+      let monthIdx = monthIdxListInv[new Date(row[1]).getMonth()];
+      monthSpentLastYear[monthIdx] += row[0];
+    });
+    monthSpentLastYearSum[0] = monthSpentLastYear[0];
+    for (let i = 1; i < 12; i++) {
+      monthSpentLastYearSum[i] = monthSpentLastYearSum[i-1] + monthSpentLastYear[i];
+    }
+
+    console.log(monthIdxList);
+    console.log(monthIdxListInv);
+    console.log(monthSpentLastYear);
+    console.log(monthSpentLastYearSum);
+
     chartColor = "#FFFFFF";
 
-    ctx = document.getElementById('chartHours').getContext("2d");
+    var ctx1 = document.getElementById('chartHours').getContext("2d");
 
-    myChart = new Chart(ctx, {
+    var myChart1 = new Chart(ctx1, {
       type: 'line',
 
       data: {
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
+        labels: monthIdxList.map((monthIdx) => {
+          if(lastUpdate.getMonth() < monthIdx) {
+            return `${lastUpdate.getFullYear() - 1}/${monthLabels[monthIdx]}`;
+          } else {
+            return `${lastUpdate.getFullYear()}/${monthLabels[monthIdx]}`;
+          }
+        }),
         datasets: [{
-            borderColor: "#6bd098",
-            backgroundColor: "#6bd098",
-            pointRadius: 0,
-            pointHoverRadius: 0,
+            label: "月次支出",
+            borderColor: '#4acccd',
+            // backgroundColor: "#6bd098",
+            backgroundColor: 'transparent',
+            // pointBorderColor: '#51CACF',
+            pointRadius: 1,
+            pointHoverRadius: 2,
+            pointBorderWidth: 4,
+
             borderWidth: 3,
-            data: [300, 310, 316, 322, 330, 326, 333, 345, 338, 354]
-          },
-          {
-            borderColor: "#f17e5d",
-            backgroundColor: "#f17e5d",
-            pointRadius: 0,
-            pointHoverRadius: 0,
+            data: monthSpentLastYear
+          }, {
+            label: "累計支出",
+            borderColor: "#ef8157",
+            // backgroundColor: "#6bd098",
+            backgroundColor: 'transparent',
+
+            pointRadius: 1,
+            pointHoverRadius: 2,
+            pointBorderWidth: 4,
+
             borderWidth: 3,
-            data: [320, 340, 365, 360, 370, 385, 390, 384, 408, 420]
-          },
-          {
-            borderColor: "#fcc468",
-            backgroundColor: "#fcc468",
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            borderWidth: 3,
-            data: [370, 394, 415, 409, 425, 445, 460, 450, 478, 484]
+            data: monthSpentLastYearSum
           }
         ]
       },
@@ -55,30 +171,40 @@ demo = {
         },
 
         tooltips: {
-          enabled: false
+          // enabled: false
+          callbacks: {
+            label: function(tooltipItem, data){
+
+                return tooltipItem.yLabel.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') +' 円';
+
+            }
+          }
         },
 
         scales: {
           yAxes: [{
 
             ticks: {
-              fontColor: "#9f9f9f",
-              beginAtZero: false,
-              maxTicksLimit: 5,
+              // fontColor: "#9f9f9f",
+              beginAtZero: true,
+              // maxTicksLimit: 5,
               //padding: 20
+              stepSize: 100000,
+              callback: function(label, index, labels) { /* ここです */
+                return label.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') +' 円';
+              }
             },
             gridLines: {
-              drawBorder: false,
+              // drawBorder: false,
               zeroLineColor: "#ccc",
-              color: 'rgba(255,255,255,0.05)'
-            }
-
+              // color: 'rgba(255,255,255,0.05)'
+            },
           }],
 
           xAxes: [{
             barPercentage: 1.6,
             gridLines: {
-              drawBorder: false,
+              // drawBorder: false,
               color: 'rgba(255,255,255,0.1)',
               zeroLineColor: "transparent",
               display: false,
@@ -92,91 +218,11 @@ demo = {
       }
     });
 
-  },
+    return;
 
-  initChartsPages: function() {
-    chartColor = "#FFFFFF";
+    var ctx2 = document.getElementById('chartEmail').getContext("2d");
 
-    ctx = document.getElementById('chartHours').getContext("2d");
-
-    myChart = new Chart(ctx, {
-      type: 'line',
-
-      data: {
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
-        datasets: [{
-            borderColor: "#6bd098",
-            backgroundColor: "#6bd098",
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            borderWidth: 3,
-            data: [300, 310, 316, 322, 330, 326, 333, 345, 338, 354]
-          },
-          {
-            borderColor: "#f17e5d",
-            backgroundColor: "#f17e5d",
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            borderWidth: 3,
-            data: [320, 340, 365, 360, 370, 385, 390, 384, 408, 420]
-          },
-          {
-            borderColor: "#fcc468",
-            backgroundColor: "#fcc468",
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            borderWidth: 3,
-            data: [370, 394, 415, 409, 425, 445, 460, 450, 478, 484]
-          }
-        ]
-      },
-      options: {
-        legend: {
-          display: false
-        },
-
-        tooltips: {
-          enabled: false
-        },
-
-        scales: {
-          yAxes: [{
-
-            ticks: {
-              fontColor: "#9f9f9f",
-              beginAtZero: false,
-              maxTicksLimit: 5,
-              //padding: 20
-            },
-            gridLines: {
-              drawBorder: false,
-              zeroLineColor: "#ccc",
-              color: 'rgba(255,255,255,0.05)'
-            }
-
-          }],
-
-          xAxes: [{
-            barPercentage: 1.6,
-            gridLines: {
-              drawBorder: false,
-              color: 'rgba(255,255,255,0.1)',
-              zeroLineColor: "transparent",
-              display: false,
-            },
-            ticks: {
-              padding: 20,
-              fontColor: "#9f9f9f"
-            }
-          }]
-        },
-      }
-    });
-
-
-    ctx = document.getElementById('chartEmail').getContext("2d");
-
-    myChart = new Chart(ctx, {
+    var myChart2 = new Chart(ctx2, {
       type: 'pie',
       data: {
         labels: [1, 2, 3],
@@ -240,6 +286,8 @@ demo = {
       }
     });
 
+    return;
+
     var speedCanvas = document.getElementById("speedChart");
 
     var dataFirst = {
@@ -282,110 +330,6 @@ demo = {
       data: speedData,
       options: chartOptions
     });
-  },
-
-  initGoogleMaps: function() {
-    var myLatlng = new google.maps.LatLng(40.748817, -73.985428);
-    var mapOptions = {
-      zoom: 13,
-      center: myLatlng,
-      scrollwheel: false, //we disable de scroll over the map, it is a really annoing when you scroll through page
-      styles: [{
-        "featureType": "water",
-        "stylers": [{
-          "saturation": 43
-        }, {
-          "lightness": -11
-        }, {
-          "hue": "#0088ff"
-        }]
-      }, {
-        "featureType": "road",
-        "elementType": "geometry.fill",
-        "stylers": [{
-          "hue": "#ff0000"
-        }, {
-          "saturation": -100
-        }, {
-          "lightness": 99
-        }]
-      }, {
-        "featureType": "road",
-        "elementType": "geometry.stroke",
-        "stylers": [{
-          "color": "#808080"
-        }, {
-          "lightness": 54
-        }]
-      }, {
-        "featureType": "landscape.man_made",
-        "elementType": "geometry.fill",
-        "stylers": [{
-          "color": "#ece2d9"
-        }]
-      }, {
-        "featureType": "poi.park",
-        "elementType": "geometry.fill",
-        "stylers": [{
-          "color": "#ccdca1"
-        }]
-      }, {
-        "featureType": "road",
-        "elementType": "labels.text.fill",
-        "stylers": [{
-          "color": "#767676"
-        }]
-      }, {
-        "featureType": "road",
-        "elementType": "labels.text.stroke",
-        "stylers": [{
-          "color": "#ffffff"
-        }]
-      }, {
-        "featureType": "poi",
-        "stylers": [{
-          "visibility": "off"
-        }]
-      }, {
-        "featureType": "landscape.natural",
-        "elementType": "geometry.fill",
-        "stylers": [{
-          "visibility": "on"
-        }, {
-          "color": "#b8cb93"
-        }]
-      }, {
-        "featureType": "poi.park",
-        "stylers": [{
-          "visibility": "on"
-        }]
-      }, {
-        "featureType": "poi.sports_complex",
-        "stylers": [{
-          "visibility": "on"
-        }]
-      }, {
-        "featureType": "poi.medical",
-        "stylers": [{
-          "visibility": "on"
-        }]
-      }, {
-        "featureType": "poi.business",
-        "stylers": [{
-          "visibility": "simplified"
-        }]
-      }]
-
-    }
-    var map = new google.maps.Map(document.getElementById("map"), mapOptions);
-
-    var marker = new google.maps.Marker({
-      position: myLatlng,
-      title: "Hello World!"
-    });
-
-    // To add the marker to the map, call setMap();
-    marker.setMap(map);
   },
 
   showNotification: function(from, align) {
