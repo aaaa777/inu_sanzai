@@ -151,8 +151,8 @@ Coded by www.creative-tim.com
                 <h5 class="card-title">月次支払額推移</h5>
                 <p class="card-category">monthly payment amount</p>
               </div>
-              <div class="card-body ">
-                <canvas id=chartHours width="400" height="100"></canvas>
+              <div class="card-body wrap-chart">
+                <canvas id=chartHours ></canvas>
               </div>
               <div class="card-footer ">
                 <div class="legend">
@@ -261,3 +261,15 @@ Coded by www.creative-tim.com
 </body>
 
 </html>
+
+<style>
+  .wrap-chart {
+      width: 100%;
+      height: 600px;
+  }
+  @media (max-width: 480px) {
+      .wrap-chart {
+          height: 400px;
+      }
+  }
+  </style>

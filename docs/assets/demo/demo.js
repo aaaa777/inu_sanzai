@@ -215,6 +215,7 @@ demo = {
             }
           }]
         },
+        maintainAspectRatio: false,
       }
     });
 
